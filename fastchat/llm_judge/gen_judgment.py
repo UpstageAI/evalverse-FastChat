@@ -5,6 +5,7 @@ python gen_judgment.py --model-list [LIST-OF-MODEL-ID] --parallel [num-concurren
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 import json
+import os
 
 import numpy as np
 from tqdm import tqdm
@@ -175,6 +176,16 @@ if __name__ == "__main__":
         help="The name of the benchmark question set.",
     )
     parser.add_argument(
+        "--model-judgement-dir",
+        type=str,
+        help="The directory of model answer.",
+    )
+    parser.add_argument(
+        "--model-answer-dir",
+        type=str,
+        help="The directory of model answer.",
+    )
+    parser.add_argument(
         "--judge-file",
         type=str,
         default="data/judge_prompts.jsonl",
@@ -210,7 +221,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     question_file = f"data/{args.bench_name}/question.jsonl"
-    answer_dir = f"data/{args.bench_name}/model_answer"
+    if args.model_answer_dir==None:
+        answer_dir = f"data/{args.bench_name}/model_answer"
+    else:
+        answer_dir = args.model_answer_dir
     ref_answer_dir = f"data/{args.bench_name}/reference_answer"
 
     # Load questions
@@ -231,11 +245,16 @@ if __name__ == "__main__":
     else:
         models = args.model_list
 
+    if args.model_judgement_dir==None:
+        judgment_dir = f"data/{args.bench_name}/model_judgment"
+    else:
+        judgment_dir = args.model_judgement_dir
+
     if args.mode == "single":
         judges = make_judge_single(args.judge_model, judge_prompts)
         play_a_match_func = play_a_match_single
         output_file = (
-            f"data/{args.bench_name}/model_judgment/{args.judge_model}_single.jsonl"
+            os.path.join(judgment_dir, f"{args.judge_model}_single.jsonl")
         )
         make_match_func = make_match_single
         baseline_model = None
@@ -243,7 +262,7 @@ if __name__ == "__main__":
         judges = make_judge_pairwise(args.judge_model, judge_prompts)
         play_a_match_func = play_a_match_pair
         output_file = (
-            f"data/{args.bench_name}/model_judgment/{args.judge_model}_pair.jsonl"
+            os.path.join(judgment_dir, f"{args.judge_model}_pair.jsonl")
         )
         if args.mode == "pairwise-all":
             make_match_func = make_match_all_pairs
